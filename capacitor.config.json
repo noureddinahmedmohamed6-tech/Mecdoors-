@@ -1,0 +1,9 @@
+{
+  "appId": "com.mec.factory",
+  "appName": "MEC",
+  "webDir": "www",
+  "backgroundColor": "#0b0f14",
+  "android": {
+    "allowMixedContent": true
+  }
+}

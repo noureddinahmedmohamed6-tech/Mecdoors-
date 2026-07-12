@@ -1,0 +1,10 @@
+{
+  "name": "mec-factory-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MEC - نظام إدارة التصنيع - تطبيق أندرويد",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open": "npx cap open android"
+  }
+}

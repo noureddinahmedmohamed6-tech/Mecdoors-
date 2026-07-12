@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEC — نظام إدارة التصنيع</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Tajawal:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#12161d; --panel:#1a2029; --panel-2:#212836; --panel-3:#262e3d; --line:#323c4d;
+  --text:#e9edf3; --text-dim:#8a94a6; --text-faint:#5c6779;
+  --accent:#ff6a3d; --accent-dim:#ff6a3d22;
+  --amber:#ffb84d; --amber-dim:#ffb84d22;
+  --good:#43b581; --good-dim:#43b58122;
+  --bad:#ef5966; --bad-dim:#ef596622;
+  --blue:#5aa3ec; --blue-dim:#5aa3ec22;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min-height:100vh;font-size:14px;}
+h1,h2,h3,.display{font-family:'Cairo',sans-serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+::selection{background:var(--accent);color:#fff;}
+::-webkit-scrollbar{height:8px;width:8px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:238px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.brand{padding:20px 18px 16px;border-bottom:1px solid var(--line);position:relative;overflow:hidden;}
+.brand-stripes{position:absolute;inset:0;opacity:.10;background:repeating-linear-gradient(-45deg,var(--accent) 0 10px,transparent 10px 20px);pointer-events:none;}
+.brand h1{font-size:19px;margin:0 0 2px;font-weight:900;letter-spacing:.5px;position:relative;}
+.brand h1 span{color:var(--accent);}
+.brand p{margin:0;color:var(--text-dim);font-size:11.5px;position:relative;}
+.nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
+.nav-label{font-size:10.5px;color:var(--text-faint);padding:10px 10px 4px;text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--text-dim);font-weight:500;font-size:13.5px;border:1px solid transparent;transition:.12s;user-select:none;}
+.nav-item:hover{background:var(--panel-2);color:var(--text);}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);border-color:#ff6a3d40;font-weight:700;}
+.nav-icon{width:18px;text-align:center;font-size:15px;}
+.nav-count{margin-right:auto;background:var(--panel-3);color:var(--text-dim);font-size:10.5px;padding:1px 7px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+.nav-item.active .nav-count{background:var(--accent);color:#fff;}
+.sidebar-foot{padding:12px 16px;border-top:1px solid var(--line);color:var(--text-faint);font-size:10.5px;line-height:1.6;}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{padding:16px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;background:var(--bg);position:sticky;top:0;z-index:20;}
+.topbar h2{margin:0;font-size:19px;font-weight:800;}
+.topbar .sub{color:var(--text-dim);font-size:12.5px;margin-top:2px;}
+.spacer{flex:1;}
+.search{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;width:200px;font-family:'Tajawal',sans-serif;}
+.search:focus{outline:none;border-color:var(--accent);}
+select.filter{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text-dim);font-size:12.5px;font-family:'Tajawal',sans-serif;}
+.btn{border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Tajawal',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:.12s;white-space:nowrap;}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:#ff7d54;}
+.btn-ghost{background:var(--panel-2);color:var(--text-dim);border:1px solid var(--line);}
+.btn-ghost:hover{color:var(--text);border-color:var(--text-faint);}
+.btn-sm{padding:5px 10px;font-size:11.5px;border-radius:6px;}
+.btn-icon{padding:6px 9px;}
+.btn-danger{background:var(--bad-dim);color:var(--bad);}
+.btn-danger:hover{background:var(--bad);color:#fff;}
+.content{padding:22px 26px 60px;overflow-y:auto;}
+
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;right:0;bottom:0;width:3px;background:var(--accent-c,var(--accent));}
+.card .k{color:var(--text-dim);font-size:11.5px;font-weight:700;margin-bottom:8px;}
+.card .v{font-family:'Cairo',sans-serif;font-size:26px;font-weight:800;}
+.card .d{color:var(--text-faint);font-size:11px;margin-top:4px;}
+.panels-2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start;}
+@media(max-width:980px){.panels-2{grid-template-columns:1fr;}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+.panel h3{margin:0 0 14px;font-size:14.5px;display:flex;align-items:center;gap:8px;}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;}
+.bar-label{width:110px;color:var(--text-dim);flex-shrink:0;}
+.bar-track{flex:1;height:8px;background:var(--panel-3);border-radius:20px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;}
+.bar-val{width:26px;text-align:left;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+.activity-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+.activity-item:last-child{border:none;}
+.act-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.act-text b{color:var(--text);}
+.act-text{color:var(--text-dim);}
+.act-time{color:var(--text-faint);font-size:11px;margin-top:1px;}
+
+.table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:right;padding:11px 14px;color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--line);background:var(--panel-2);font-weight:700;white-space:nowrap;}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line);color:var(--text);white-space:nowrap;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--panel-2);cursor:pointer;}
+.id-tag{font-family:'JetBrains Mono',monospace;color:var(--text-dim);font-size:11.5px;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.row-actions{display:flex;gap:6px;}
+.empty-state{padding:60px 20px;text-align:center;color:var(--text-faint);}
+.empty-state .big{font-size:34px;margin-bottom:10px;}
+.empty-state h4{color:var(--text-dim);margin:0 0 4px;font-family:'Cairo',sans-serif;}
+
+.overlay{position:fixed;inset:0;background:#0009;backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;overflow-y:auto;}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:640px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;margin:auto;}
+.modal-lg{width:920px;}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;}
+.modal-head h3{margin:0;font-size:16px;}
+.modal-body{padding:20px 22px;overflow-y:auto;}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap;}
+.close-x{margin-right:auto;background:none;border:none;color:var(--text-faint);font-size:20px;cursor:pointer;line-height:1;}
+.close-x:hover{color:var(--text);}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:12px;color:var(--text-dim);font-weight:700;}
+.field label .req{color:var(--accent);}
+.field input,.field select,.field textarea{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:9px 11px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:13.5px;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:60px;font-family:'Tajawal',sans-serif;}
+.computed-box{grid-column:1/-1;background:var(--panel-3);border:1px dashed var(--line);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--text-dim);display:flex;justify-content:space-between;align-items:center;}
+.computed-box b{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:16px;}
+.section-title{font-size:12.5px;font-weight:800;color:var(--accent);margin:4px 0 2px;padding-bottom:6px;border-bottom:1px solid var(--line);grid-column:1/-1;text-transform:uppercase;letter-spacing:.5px;}
+.confirm-box{width:360px;}
+.confirm-box .modal-body{text-align:center;padding:26px 22px 6px;}
+.confirm-box .modal-foot{justify-content:center;}
+#loginScreen{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 20%,var(--panel-2),var(--bg) 70%);padding:20px;}
+.login-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:32px 28px;box-shadow:0 20px 60px #0006;}
+.login-card .brand-lg{text-align:center;margin-bottom:22px;}
+.login-card .brand-lg h1{font-size:34px;letter-spacing:1px;color:var(--text);}
+.login-card .brand-lg h1 span{color:var(--accent);}
+.login-card .brand-lg p{color:var(--text-faint);font-size:13px;margin-top:4px;}
+.login-card .field{margin-bottom:14px;}
+.login-card label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;}
+.login-card input{width:100%;}
+.login-card .btn{width:100%;justify-content:center;margin-top:8px;}
+.login-err{color:var(--bad);font-size:13px;text-align:center;min-height:18px;margin-top:6px;}
+.login-foot-link{text-align:center;margin-top:16px;font-size:12px;color:var(--text-faint);cursor:pointer;text-decoration:underline;}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel-3);border:1px solid var(--line);border-right:3px solid var(--good);padding:12px 20px;border-radius:8px;font-size:13px;z-index:200;box-shadow:0 8px 24px #0006;opacity:0;transition:.25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+.print-sheet{background:#fff;color:#111;border-radius:10px;padding:0;overflow:hidden;}
+.print-sheet .ph{background:var(--accent);color:#fff;padding:18px 24px;}
+.print-sheet .ph h2{margin:0;font-family:'Cairo',sans-serif;}
+.print-sheet .ph p{margin:2px 0 0;opacity:.9;font-size:12px;}
+.print-sheet .pb{padding:22px 24px;}
+.print-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed #ddd;font-size:13.5px;}
+.print-row span:first-child{color:#777;}
+.print-row span:last-child{font-weight:700;}
+.print-total{margin-top:14px;background:#f4f1ea;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;font-weight:800;}
+.print-sign{margin-top:34px;display:flex;justify-content:space-between;font-size:12px;color:#777;}
+.print-sign div{border-top:1px solid #ccc;padding-top:6px;width:140px;text-align:center;}
+.print-bom-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px;}
+.print-bom-table th{background:#f4f1ea;text-align:right;padding:6px 8px;}
+.print-bom-table td{padding:6px 8px;border-bottom:1px solid #eee;}
+@media print{ body *{visibility:hidden;} #printArea,#printArea *{visibility:visible;} #printArea{position:fixed;inset:0;background:#fff;} }
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap;}
+.tab-btn{padding:9px 16px;background:none;border:none;color:var(--text-dim);font-weight:700;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;font-family:'Tajawal',sans-serif;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.spec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+.spec-item{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;}
+.spec-item .l{font-size:11px;color:var(--text-faint);margin-bottom:4px;}
+.spec-item .v{font-weight:700;font-family:'JetBrains Mono',monospace;font-size:13.5px;}
+.info-note{background:var(--blue-dim);border:1px solid #5aa3ec40;color:var(--blue);border-radius:8px;padding:10px 14px;font-size:12.5px;margin-bottom:16px;}
+
+.db-cat{margin-bottom:26px;}
+.db-cat h4{margin:0 0 10px;font-size:14px;display:flex;align-items:center;gap:8px;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel-3);border:1px solid var(--line);border-radius:20px;padding:5px 6px 5px 12px;font-size:12.5px;margin:0 4px 8px 0;}
+.chip button{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:13px;width:20px;height:20px;border-radius:50%;line-height:1;}
+.chip button:hover{background:var(--bad-dim);color:var(--bad);}
+.mini-add{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+.mini-add input,.mini-add select{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:7px 10px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:12.5px;}
+.mini-add input{flex:1;min-width:100px;}
+
+.mobile-toggle{display:none;}
+@media(max-width:860px){
+  .sidebar{position:fixed;right:0;top:0;z-index:90;transform:translateX(100%);transition:.2s;}
+  .sidebar.open{transform:translateX(0);}
+  .mobile-toggle{display:inline-flex;}
+  .form-grid{grid-template-columns:1fr;}
+  .search{width:120px;}
+  .modal-lg{width:100%;}
+}
+</style>
+</head>
+<body>
+<div id="loginScreen" style="display:none">
+  <div class="login-card">
+    <div class="brand-lg"><h1>M<span>E</span>C</h1><p>نظام إدارة التصنيع — تسجيل الدخول</p></div>
+    <div class="field"><label>اسم المستخدم</label><input id="loginUser" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()"></div>
+    <div class="field"><label>كلمة المرور</label><input id="loginPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn btn-accent" onclick="doLogin()">دخول</button>
+    <div class="login-foot-link" onclick="openChangePasswordModal(true)">نسيت كلمة المرور / تغييرها</div>
+  </div>
+</div>
+<div class="shell" id="appShell" style="display:none">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-stripes"></div>
+      <h1>M<span>E</span>C</h1>
+      <p>نظام إدارة التصنيع — محرك حسابات هندسي</p>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot">بيانات مشتركة لكل الفريق · تُحفظ تلقائيًا · محرك الحسابات مبني على معادلات ملفكم الأصلي
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openChangePasswordModal(false)">🔑 كلمة المرور</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="doLogout()">⏻ خروج</button>
+      </div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <button class="btn btn-ghost btn-icon mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div><h2 id="viewTitle">لوحة التحكم</h2><div class="sub" id="viewSub">نظرة عامة على حالة المصنع</div></div>
+      <div class="spacer"></div>
+      <input type="text" class="search" id="searchBox" placeholder="بحث..." oninput="onSearch(this.value)" style="display:none">
+      <select class="filter" id="statusFilter" onchange="onFilter(this.value)" style="display:none"></select>
+      <button class="btn btn-ghost" id="exportBtn" onclick="exportCSV()" style="display:none">⤓ تصدير</button>
+      <button class="btn btn-accent" id="addBtn" onclick="onAddClick()" style="display:none">+ إضافة</button>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ENGINEERING DATABASE (ported from workbook "Database" sheet)
+   ============================================================ */
+const DB_DEFAULT = {
+  slatTypes: [
+    {key:'M3',  name:'اليوناني المحقون',                  width:9,   badi:10, weightSqm:11.55, palletGroup:'A'},
+    {key:'M4',  name:'اليوناني المخرم',                    width:12,  badi:10, weightSqm:8.4,   palletGroup:'B'},
+    {key:'M5',  name:'اليوناني المصمت',                    width:12,  badi:10, weightSqm:11.2,  palletGroup:'B'},
+    {key:'M6',  name:'فلات MEC',                           width:10,  badi:14, weightSqm:11.5,  palletGroup:'C'},
+    {key:'M7',  name:'فلات MEC مخرم',                      width:10,  badi:14, weightSqm:11,    palletGroup:'D'},
+    {key:'M8',  name:'بومبيه محلي عريض 0.8',               width:7.2, badi:14, weightSqm:10.55, palletGroup:'B'},
+    {key:'M9',  name:'بومبيه محلي 7.2سم 0.8',              width:7.2, badi:14, weightSqm:11.43, palletGroup:'B'},
+    {key:'M10', name:'بومبيه محلي 7.2سم 1مم',              width:7.2, badi:14, weightSqm:12.6,  palletGroup:'B'},
+    {key:'M11', name:'بومبيه محلي 7.2 سم 0.72 مم',         width:7.2, badi:14, weightSqm:11.76, palletGroup:'B'},
+    {key:'M12', name:'بومبيه محلي 7.2 سم 0.7 مم',          width:7.2, badi:14, weightSqm:10.64, palletGroup:'B'},
+    {key:'M13', name:'شرائح بولي كربونيت 3 مم اماراتي',    width:8.5, badi:8,  weightSqm:8.52,  palletGroup:'F'},
+    {key:'M14', name:'شرائح بولي كربونيت 6 مم عادي',       width:9,   badi:0,  weightSqm:17.12, palletGroup:'D'},
+    {key:'M15', name:'شرائح ألومينيوم فلات 2مم',           width:13,  badi:0,  weightSqm:13.05, palletGroup:'C', rib:true},
+    {key:'M16', name:'شرائح الومينيوم بومبيه 3مم',         width:12.5,badi:0,  weightSqm:15.48, palletGroup:'E', rib:true},
+    {key:'M17', name:'شرائح صاج بومبيه المصريون 0.8مم',    width:7.2, badi:9,  weightSqm:11.76, palletGroup:'E'},
+    {key:'M18', name:'شريحة المصريون 0.4مم double',        width:7.2, badi:9,  weightSqm:11.5,  palletGroup:'G'},
+    {key:'M19', name:'شريحة المصريون 0.7وش 0.4ضهر double', width:7.2, badi:9,  weightSqm:14,    palletGroup:'G'},
+    {key:'M20', name:'شرسحة المصريون ألومينيوم سادة',      width:7,   badi:0,  weightSqm:7.5,   palletGroup:'G'},
+  ],
+  guideTypes: [
+    {name:'علبة بمجرى 17.5*10 سم', weightPerMeter:11.69, boxType:true},
+    {name:'علبة بمجرى 10*10 سم',  weightPerMeter:9.42,  boxType:true},
+    {name:'مدمج 10*10 سم',        weightPerMeter:5.5,   boxType:false},
+    {name:'مدمج 8*8.5 سم',        weightPerMeter:4.7,   boxType:false},
+    {name:'مدمج 7*7.5 سم',        weightPerMeter:3.94,  boxType:false},
+    {name:'مدمج 12*10 سم',        weightPerMeter:6.2,   boxType:false},
+  ],
+  housingBoxes: {
+    35:{weightPerMeter:15.54, plateWeight:5.5},
+    40:{weightPerMeter:17.9,  plateWeight:6.91},
+    45:{weightPerMeter:20.25, plateWeight:8.48},
+    50:{weightPerMeter:22.61, plateWeight:10.21},
+  },
+  pallets:[35,40,45,50],
+  motorTypes:['منتصف','اسطواني'],
+  motorPowers:['140 N.M','200 N.M','250 N.M','300 N.M','350 N.M','450 N.M','T8','T9','100 N.M','75 N.M'],
+  motorDirections:['يمين','شمال'],
+  seals:['عادي','wind lock','end lock'],
+  rollDirections:['داخل','خارج'],
+  rubberTypes:['كاوتش مسلح','كاوتش بفرش'],
+  paintColors:['7011','7035','7001','1015','1013','9010','9006','9003','9016','9001','8040','5024','5013','5010','1001','7047','7039','7024','9005','5002','7037','لم يحدد'],
+  paintSuppliers:['الإسراء للدهان','الدلتا للدهان'],
+  drivers:['عم / فوزي','ا/محمد يوسف','أ/علي عبدالواحد'],
+  yesNo:['يوجد','لا يوجد'],
+  palletWelding:['لحام','لحام + تسبيق','لا يوجد'],
+};
+
+/* ============================================================
+   CALCULATION ENGINE (ported from "Calculations" + "bill of quantity" sheets)
+   ============================================================ */
+function EVEN(x){ return x>=0 ? Math.ceil(x/2)*2 : Math.floor(x/2)*2; }
+function ODD(x){ const c=Math.ceil(x); return c%2===0? c+1 : c; }
+function r1(x){ return Math.round(x*10)/10; }
+function r3(x){ return Math.round(x*1000)/1000; }
+
+function findSlat(name){ return CDB.slatTypes.find(s=>s.name===name); }
+function findGuide(name){ return CDB.guideTypes.find(g=>g.name===name); }
+
+function autoPalletSize(slat, height, rollDir){
+  const IN = rollDir === 'داخل';
+  switch(slat.palletGroup){
+    case 'A': return (IN && height<350) ? 40 : 45;
+    case 'B': return IN ? (height<300?40:45) : (height<260?40:45);
+    case 'C': return height<280?35:height<380?40:height<550?45:50;
+    case 'D': return height<310?35:height<400?40:height<500?45:50;
+    case 'E': return IN ? (height<300?40:height<500?45:50) : (height<260?40:height<440?45:50);
+    case 'F': return height<350?40:45;
+    case 'G': return height<350?40:height<500?45:50;
+    default: return 40;
+  }
+}
+function railOpening(slat, rubberType){
+  if(['M3','M18','M19'].includes(slat.key)) return rubberType==='كاوتش مسلح'?4:4.5;
+  const map = {M4:4,M5:4,M6:3,M7:3,M8:3,M9:3,M10:3,M11:3,M12:3,M13:5,M14:3,M15:3,M16:3,M17:3,M20:3};
+  return map[slat.key] ?? 3;
+}
+function pipeDiameter(safetyBreak, motorType, pipeLength, slatKey){
+  if(safetyBreak==='يوجد') return {mm:193,label:'اسطواني 193 مم'};
+  if(motorType==='منتصف') return {mm:50,label:'منتصف 50 مم'};
+  if(slatKey==='M3') return {mm:159,label:'اسطواني 159 مم'};
+  if(['M13','M16'].includes(slatKey)) return pipeLength<=700? {mm:139,label:'اسطواني 139 مم'} : {mm:193,label:'اسطواني 193 مم'};
+  return pipeLength<=700? {mm:139,label:'اسطواني 139 مم'} : {mm:168,label:'اسطواني 168 مم'};
+}
+function motorOpeningLabel(mm){ return ({139:'فتحة 15 سم',159:'فتحة 17 سم',168:'فتحة 17 سم',193:'فتحة 20 سم',50:''})[mm] || ''; }
+
+function runCalc(o){
+  const slat = findSlat(o.slatType), guide = findGuide(o.guideType);
+  if(!slat || !guide) return null;
+  const width=Number(o.width)||0, height=Number(o.height)||0, dc=Number(o.doorCount)||1;
+  const pipeLength = width - (o.motorType==='منتصف' ? 1.5 : 3);
+  const curtainWidth = width - (o.seal==='عادي' ? 4 : o.seal==='end lock' ? 6 : (['M3','M18','M19'].includes(slat.key) ? 12 : 6));
+  const doorWeight = r3(height * curtainWidth * slat.weightSqm * 1e-4);
+  const slatCount = Math.ceil((height - slat.badi) / slat.width);
+  const badiCount = slat.rib ? slatCount - 1 : null;
+
+  let bracketInitial, bracketFinal, bracketSpacing;
+  if(o.motorType==='منتصف'){
+    bracketInitial = EVEN(doorWeight/30);
+    bracketFinal = ((pipeLength-70)/(bracketInitial-1))<35 ? bracketInitial-2 : bracketInitial;
+    bracketSpacing = r1((pipeLength-110)/bracketInitial);
+  } else {
+    bracketInitial = ODD(((pipeLength-70)/50)+2);
+    bracketFinal = ((pipeLength-70)/(bracketInitial-1))<35 ? bracketInitial-2 : bracketInitial;
+    bracketSpacing = r1((pipeLength-70)/(bracketFinal-1));
+  }
+  const cableLength = height<=315?'3.5 متر':height<=365?'4 متر':'5 متر';
+  const diameter = pipeDiameter(o.safetyBreak, o.motorType, pipeLength, slat.key);
+  const palletSize = o.palletOverride ? Number(o.palletOverride) : autoPalletSize(slat, height, o.rollDirection);
+  const boxLength = height - palletSize;
+  const railLength = boxLength + 5;
+  const opening = railOpening(slat, o.rubberType);
+  const bracketQty = dc*bracketFinal;
+
+  return {slat,guide,pipeLength:r1(pipeLength),curtainWidth:r1(curtainWidth),doorWeight,slatCount,badiCount,
+    bracketInitial,bracketFinal,bracketSpacing,bracketQty,cableLength,diameter,palletSize,boxLength,railLength,opening,doorCount:dc};
+}
+function bracketMaterial(motorType, slatKey){
+  const isFlatAlum = ['M15','M16'].includes(slatKey);
+  if(motorType==='منتصف') return isFlatAlum? 'ماشات حديد':'ماشات صاج';
+  return isFlatAlum? 'ماشات الومينيوم فلات':'ماشات بومبيه';
+}
+function housingBoxName(size, motorType){
+  const plain = 'علبة حافظة '+size+'*'+size, plated = plain+' بالطبات';
+  if(motorType==='اسطواني') return size===40 ? plain : plated;
+  return plain;
+}
+function buildBOM(o, calc){
+  const dc = calc.doorCount, slat = calc.slat, guide = calc.guide;
+  const items = [];
+  items.push({name:'القوائم', description: guide.boxType
+    ? `${guide.name} طول العلبة ${calc.boxLength} طول المجرى ${calc.railLength}`
+    : `${guide.name} طول ${calc.boxLength}`, qty: dc*2, unit:'قطعة'});
+
+  const motorSide = o.motorType==='منتصف'
+    ? `باليتة ${calc.palletSize}*${calc.palletSize} منتصف`
+    : `باليتة ${calc.palletSize}*${calc.palletSize} موتور ${motorOpeningLabel(calc.diameter.mm)}`;
+  const secondSide = o.motorType==='اسطواني' ? `باليتة ${calc.palletSize}*${calc.palletSize} رومان بلي فتحة 7 سم` : '';
+  items.push({name:'الباليتة', description: secondSide? `${motorSide} & ${secondSide}` : motorSide, qty: dc, unit:'طقم'});
+
+  if(o.housingBox==='يوجد') items.push({name:'العلبة الحافظة', description: housingBoxName(calc.palletSize, o.motorType), qty: dc, unit:'قطعة'});
+  items.push({name:'الماسورة', description:`ماسورة ${calc.diameter.label} طول ${calc.pipeLength}`, qty: dc, unit:'قطعة'});
+
+  if(o.motorType==='منتصف'){
+    // بند وصفي: عدد الزمبلكات + حجم الزمبلك حسب فئة الارتفاع (يقابل صف 10 في bill of quantity)
+    items.push({name:'الزمبلك والطنابير', description:`${calc.bracketFinal} طنابير+زمبلكات ${calc.cableLength}`, qty: dc, unit:'طقم'});
+  }
+  // بند قابل للعد دائمًا (يقابل صف 11 — ينطبق على النوعين، بنفس عدد الزمبلك/الماشات النهائي)
+  items.push({name:'الماشات', description:`${bracketMaterial(o.motorType,slat.key)}${o.motorType==='اسطواني'?` , ${calc.bracketSpacing} سم`:''}`, qty: calc.bracketQty, unit:'قطعة'});
+  items.push({name:'اكس ماسورة اسطواني', description:'يُحدَّد يدويًا حسب الموقع', qty:null, manual:true, unit:'قطعة'});
+  items.push({name:'مسمار هيلتي', description:'مسمار هيلتي 10سم', qty:16*dc, unit:'قطعة'});
+  items.push({name:'مسمار فيشر 10 مم', description:'مسمار فيشر 10 مم', qty:10*dc, unit:'قطعة'});
+  items.push({name:'فيشر 10 مم', description:'فيشر 10 مم', qty:10*dc, unit:'قطعة'});
+
+  let q1040=0, q1020=0;
+  if(o.motorType==='اسطواني'){
+    q1040 = calc.bracketQty+1; items.push({name:'مسمار 10*40 راس مفتاح', description:'مسمار 10*40', qty:q1040, unit:'قطعة'});
+    q1020 = dc; items.push({name:'مسمار 10*20 راس مفتاح', description:'مسمار 10*20', qty:q1020, unit:'قطعة'});
+    items.push({name:'مسمار 8*30 الين', description:'مسمار 8*30 الين', qty:13*dc, unit:'قطعة'});
+    items.push({name:'رولمان بلي/سيفتي بريك', description: o.safetyBreak==='يوجد'?'سيفتي بريك':'رولمان بلي', qty: dc, unit:'قطعة'});
+    items.push({name:'مسمار 12*40', description:'مسمار 12*40', qty:2*dc, unit:'قطعة'});
+    items.push({name:'صامولة 12', description:'صامولة 12', qty:2*dc, unit:'قطعة'});
+  } else {
+    q1040 = 2*dc; items.push({name:'مسمار 10*40 راس مفتاح', description:'مسمار 10*40', qty:q1040, unit:'قطعة'});
+    items.push({name:'مسمار 10*100', description:'مسمار 10*100', qty:2*dc, unit:'قطعة'});
+    items.push({name:'مسمار 10*40 الين', description:'مسمار 10*40', qty:2*dc, unit:'قطعة'});
+    items.push({name:'ريب موتور', description:'ريب موتور', qty: dc, unit:'قطعة'});
+    items.push({name:'دواسة باب', description:'دواسة باب بالمسامير والصواميل', qty: 2*dc, unit:'قطعة'});
+  }
+  items.push({name:'وردة عريضة', description:'وردة 10 عريضة', qty:q1040+q1020, unit:'قطعة'});
+  items.push({name:'تاتش اب', description:`تاتش اب ${o.paintColor||''}`, qty:1, unit:'علبة'});
+  items.push({name:'كاوتش', description: o.rubberType, qty: (guide.boxType? calc.railLength: calc.boxLength) * 4 * dc, unit:'سم'});
+  items.push({name:'زاوية تثبيت', description:'زاوية تثبيت 3 م', qty: dc, unit:'قطعة'});
+  return items;
+}
+function paintWeightEstimate(o, calc){
+  const guideWeight = calc.guide.weightPerMeter * calc.boxLength * 0.01 * (calc.doorCount*2);
+  const curtainWeight = calc.doorWeight * calc.doorCount;
+  let boxWeight = 0;
+  if(o.housingBox==='يوجد'){
+    const hb = CDB.housingBoxes[calc.palletSize];
+    if(hb){
+      boxWeight = hb.weightPerMeter * (Number(o.width)+20) * 0.01;
+      if(!(o.motorType==='اسطواني' && calc.palletSize===40)) boxWeight += hb.plateWeight;
+      boxWeight *= calc.doorCount;
+    }
+  }
+  return r3(guideWeight + curtainWeight + boxWeight);
+}
+
+/* ============================================================
+   DATA LAYER
+   ============================================================ */
+let STATE = { orders:[], paints:[], purchases:[], supplies:[], stock:{}, counters:{MO:0,PT:0,PO:0,SU:0} };
+let CDB = JSON.parse(JSON.stringify(DB_DEFAULT));
+let currentView='dashboard', searchTerm='', statusTerm='', editingId=null, orderDetailId=null, orderDetailTab='overview';
+
+const LS_PREFIX = 'mec_factory_v1_';
+const HAS_ARTIFACT_STORAGE = (typeof window !== 'undefined' && !!window.storage);
+async function storeGet(key, fallback){
+  // المصدر الأساسي: تخزين المتصفح المحلي — يضمن بقاء البيانات بعد إغلاق الملف وإعادة فتحه
+  try{
+    const raw = localStorage.getItem(LS_PREFIX+key);
+    if(raw !== null) return JSON.parse(raw);
+  }catch(e){ /* تجاهل ومحاولة المصدر الثاني */ }
+  if(HAS_ARTIFACT_STORAGE){
+    try{
+      const r = await window.storage.get(key, true);
+      if(r){ try{ localStorage.setItem(LS_PREFIX+key, r.value); }catch(e){} return JSON.parse(r.value); }
+    }catch(e){ /* لا يوجد بيانات بعد */ }
+  }
+  return fallback;
+}
+async function storeSet(key, value){
+  const json = JSON.stringify(value);
+  let localOk = false;
+  try{ localStorage.setItem(LS_PREFIX+key, json); localOk = true; }catch(e){ console.error('local storage error', e); }
+  if(HAS_ARTIFACT_STORAGE){ try{ await window.storage.set(key, json, true); }catch(e){ /* تجاهل */ } }
+  if(!localOk) showToast('تعذر الحفظ محليًا — تحقق من إعدادات المتصفح (وضع التصفح الخاص يمنع الحفظ)', true);
+}
+
+async function loadAll(){
+  const [orders,paints,purchases,supplies,stock,counters,db] = await Promise.all([
+    storeGet('orders',null), storeGet('paints',null), storeGet('purchases',null), storeGet('supplies',null),
+    storeGet('stock',null), storeGet('counters',null), storeGet('engineDB',null)
+  ]);
+  STATE.orders=orders||[]; STATE.paints=paints||[]; STATE.purchases=purchases||[]; STATE.supplies=supplies||[];
+  STATE.stock=stock||{}; STATE.counters=counters||{MO:0,PT:0,PO:0,SU:0};
+  if(db){ CDB = db; } else { await storeSet('engineDB', CDB); }
+}
+function nextId(prefix){ STATE.counters[prefix]=(STATE.counters[prefix]||0)+1; storeSet('counters',STATE.counters); return prefix+'-'+String(STATE.counters[prefix]).padStart(4,'0'); }
+function fmtMoney(n){ return (Number(n||0)).toLocaleString('ar-EG',{maximumFractionDigits:0}) + ' ج.م'; }
+function fmtNum(n,d){ return (Number(n||0)).toLocaleString('ar-EG',{maximumFractionDigits:d??2}); }
+function timeAgo(ts){ const diff=Date.now()-ts,m=Math.floor(diff/60000),h=Math.floor(diff/3600000),d=Math.floor(diff/86400000);
+  if(d>0) return 'منذ '+d+' يوم'; if(h>0) return 'منذ '+h+' ساعة'; if(m>0) return 'منذ '+m+' دقيقة'; return 'الآن'; }
+
+/* ============================================================
+   PURCHASES & SUPPLIES — generic config-driven modules
+   ============================================================ */
+const MODULES = {
+  purchases:{
+    label:'طلبات الشراء', icon:'🛒', prefix:'PO', key:'purchases',
+    subtitle:'طلب شراء الخامات والمستلزمات من الموردين',
+    statuses:['معلق موافقة','تمت الموافقة','تم الطلب','تم الاستلام','ملغي'],
+    statusColor:{'معلق موافقة':'amber','تمت الموافقة':'blue','تم الطلب':'blue','تم الاستلام':'good','ملغي':'bad'},
+    columns:[
+      {key:'id',label:'رقم الطلب'},{key:'itemName',label:'الصنف'},{key:'qty',label:'الكمية'},{key:'unit',label:'الوحدة'},
+      {key:'supplier',label:'المورد المقترح'},{key:'total',label:'الإجمالي التقديري',compute:true},
+      {key:'priority',label:'الأولوية'},{key:'approvalStatus',label:'الاعتماد',badge:true},{key:'status',label:'الحالة',badge:true},{key:'date',label:'التاريخ'}
+    ],
+    fields:[
+      {key:'itemName',label:'اسم الصنف',type:'text',req:true},
+      {key:'spec',label:'المواصفات / التوصيف',type:'text'},
+      {key:'date',label:'التاريخ',type:'date',req:true},
+      {key:'qty',label:'الكمية',type:'number',req:true},
+      {key:'unit',label:'الوحدة',type:'select',options:['كجم','طن','متر','قطعة','لفة','علبة','سم']},
+      {key:'unitPrice',label:'سعر الوحدة التقديري (ج.م)',type:'number'},
+      {key:'supplier',label:'المورد المقترح',type:'text'},
+      {key:'priority',label:'الأولوية',type:'select',options:['عادي','عاجل']},
+      {key:'status',label:'الحالة',type:'select',options:['معلق موافقة','تمت الموافقة','تم الطلب','تم الاستلام','ملغي']},
+      {key:'notes',label:'ملاحظات',type:'textarea',full:true},
+    ],
+    computeTotal:(r)=> Number(r.qty||0)*Number(r.unitPrice||0)
+  },
+  supplies:{
+    label:'اذون التوريد', icon:'🚚', prefix:'SU', key:'supplies',
+    subtitle:'إذن استلام وتوريد الخامات إلى المخزن أو خط الإنتاج',
+    statuses:['معلق','تم التسليم'],
+    statusColor:{'معلق':'amber','تم التسليم':'good'},
+    printable:true,
+    columns:[
+      {key:'id',label:'رقم الإذن'},{key:'itemName',label:'الصنف'},{key:'qty',label:'الكمية'},{key:'unit',label:'الوحدة'},
+      {key:'source',label:'من'},{key:'destination',label:'إلى'},{key:'approvalStatus',label:'الاعتماد',badge:true},{key:'status',label:'الحالة',badge:true},{key:'date',label:'التاريخ'}
+    ],
+    fields:[
+      {key:'itemName',label:'اسم الصنف',type:'text',req:true},
+      {key:'linkedPO',label:'رقم طلب الشراء المرتبط',type:'ref',ref:'purchases'},
+      {key:'date',label:'التاريخ',type:'date',req:true},
+      {key:'qty',label:'الكمية',type:'number',req:true},
+      {key:'unit',label:'الوحدة',type:'select',options:['كجم','طن','متر','قطعة','لفة','علبة','سم']},
+      {key:'source',label:'من (المورد)',type:'text'},
+      {key:'destination',label:'إلى (المخزن / خط الإنتاج)',type:'text'},
+      {key:'receivedBy',label:'المستلم',type:'text'},
+      {key:'status',label:'الحالة',type:'select',options:['معلق','تم التسليم']},
+      {key:'notes',label:'ملاحظات',type:'textarea',full:true},
+    ]
+  }
+};
+
+/* ============================================================
+   APPROVAL WORKFLOW — يمنع تقدّم الأوامر/الأذون قبل اعتمادها
+   ============================================================ */
+const APPROVAL_STATUSES = ['بانتظار الاعتماد','معتمد','مرفوض'];
+const APPROVAL_COLOR = {'بانتظار الاعتماد':'amber','معتمد':'good','مرفوض':'bad'};
+const APPROVAL_LABELS = {orders:'أمر التصنيع', paints:'إذن الدهان', purchases:'طلب الشراء', supplies:'إذن التوريد'};
+// الحالات التي تتطلب اعتمادًا مسبقًا قبل السماح بها لكل وحدة
+const GATED_STATUSES = {
+  orders: ['قيد التصنيع','مكتمل'],
+  paints: ['قيد التنفيذ','مكتمل'],
+  purchases: ['تم الطلب','تم الاستلام'],
+  supplies: ['تم التسليم'],
+};
+function approvalOf(r){ return (r && r.approvalStatus) || 'بانتظار الاعتماد'; }
+function approvalBadgeHtml(r){ return statusBadgeHtml(approvalOf(r), APPROVAL_COLOR); }
+function checkApprovalGate(modKey, existingRecord, newStatus){
+  const gated = GATED_STATUSES[modKey];
+  if(!gated || !newStatus || !gated.includes(newStatus)) return true;
+  if(approvalOf(existingRecord)==='معتمد') return true;
+  showToast('لا يمكن ضبط الحالة على "'+newStatus+'" قبل اعتماد '+(APPROVAL_LABELS[modKey]||'السجل')+' من المسؤول المختص', true);
+  return false;
+}
+function openApprovalModal(modKey, id){
+  const r = STATE[modKey].find(x=>x.id===id); if(!r) return;
+  const label = APPROVAL_LABELS[modKey] || modKey;
+  const cur = approvalOf(r);
+  const historyNote = r.approvedBy
+    ? `<br>بواسطة: <b>${r.approvedBy}</b> — ${new Date(r.approvedAt).toLocaleString('ar-EG')}${cur==='مرفوض' && r.rejectionReason ? `<br>سبب الرفض: ${r.rejectionReason}` : ''}`
+    : '';
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>🛡 اعتماد — ${label} ${r.id}</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">
+        <div class="info-note">الحالة الحالية: ${approvalBadgeHtml(r)}${historyNote}</div>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="field full"><label>اسم المعتمد<span class="req"> *</span></label><input id="f_approverName" value="${r.approvedBy||''}" placeholder="اسم المسؤول المختص بالاعتماد"></div>
+          <div class="field full"><label>ملاحظة (مطلوبة عند الرفض)</label><textarea id="f_approvalNote">${cur==='مرفوض' ? (r.rejectionReason||'') : ''}</textarea></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-accent" onclick="submitApproval('${modKey}','${id}','approve')">✔ اعتماد</button>
+        <button class="btn btn-danger" onclick="submitApproval('${modKey}','${id}','reject')">✕ رفض</button>
+        <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+      </div>
+    </div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+}
+async function submitApproval(modKey, id, decision){
+  const r = STATE[modKey].find(x=>x.id===id); if(!r) return;
+  const name = document.getElementById('f_approverName').value.trim();
+  const note = document.getElementById('f_approvalNote').value.trim();
+  if(!name){ showToast('برجاء إدخال اسم المعتمد', true); return; }
+  if(decision==='reject' && !note){ showToast('برجاء إدخال سبب الرفض', true); return; }
+  r.approvalStatus = decision==='approve' ? 'معتمد' : 'مرفوض';
+  r.approvedBy = name;
+  r.approvedAt = Date.now();
+  r.rejectionReason = decision==='reject' ? note : '';
+  await storeSet(modKey, STATE[modKey]);
+  closeModal();
+  showToast(decision==='approve' ? ('تم اعتماد '+(APPROVAL_LABELS[modKey]||modKey)+' '+id) : ('تم رفض '+(APPROVAL_LABELS[modKey]||modKey)+' '+id));
+  render();
+}
+
+/* ============================================================
+   NAV / SHELL
+   ============================================================ */
+const NAV_ITEMS = [
+  {key:'dashboard', label:'لوحة التحكم', icon:'▤'},
+  {key:'orders', label:'أوامر التصنيع', icon:'⚙'},
+  {key:'paints', label:'اذون الدهان', icon:'🎨'},
+  {key:'purchases', label:'طلبات الشراء', icon:'🛒'},
+  {key:'supplies', label:'اذون التوريد', icon:'🚚'},
+  {key:'stock', label:'مستلزمات التوريد', icon:'📦'},
+  {key:'database', label:'قاعدة البيانات', icon:'🗄'},
+];
+function countFor(key){
+  if(key==='orders') return STATE.orders.length;
+  if(key==='paints') return STATE.paints.length;
+  if(key==='purchases') return STATE.purchases.length;
+  if(key==='supplies') return STATE.supplies.length;
+  if(key==='stock'){ const agg=aggregateDemand(); return Object.values(agg).filter(a=>a.shortfall>0).length; }
+  return null;
+}
+function renderNav(){
+  const nav=document.getElementById('nav');
+  nav.innerHTML = NAV_ITEMS.map(it=>{
+    const c = countFor(it.key);
+    return `<div class="nav-item ${currentView===it.key?'active':''}" onclick="setView('${it.key}')">
+      <span class="nav-icon">${it.icon}</span><span>${it.label}</span>
+      ${c!==null?`<span class="nav-count">${c}</span>`:''}</div>`;
+  }).join('').replace('لوحة التحكم</span>\n      ', 'لوحة التحكم</span>');
+}
+function setView(view){ currentView=view; searchTerm=''; statusTerm=''; document.getElementById('sidebar').classList.remove('open'); render(); }
+function onSearch(v){ searchTerm=v; renderCurrentList(); }
+function onFilter(v){ statusTerm=v; renderCurrentList(); }
+function renderCurrentList(){
+  if(currentView==='orders') renderOrdersList();
+  else if(currentView==='paints') renderPaintsList();
+  else if(MODULES[currentView]) renderGenericTable(MODULES[currentView]);
+}
+function onAddClick(){
+  if(currentView==='orders') openOrderForm();
+  else if(currentView==='paints') openPaintForm();
+  else if(MODULES[currentView]) openGenericForm(currentView);
+}
+
+function render(){
+  renderNav();
+  const title=document.getElementById('viewTitle'), sub=document.getElementById('viewSub');
+  const searchBox=document.getElementById('searchBox'), statusFilter=document.getElementById('statusFilter');
+  const addBtn=document.getElementById('addBtn'), exportBtn=document.getElementById('exportBtn');
+
+  if(currentView==='dashboard'){
+    title.textContent='لوحة التحكم'; sub.textContent='نظرة عامة على حالة المصنع';
+    searchBox.style.display='none'; statusFilter.style.display='none'; addBtn.style.display='none'; exportBtn.style.display='none';
+    renderDashboard(); return;
+  }
+  if(currentView==='stock'){
+    title.textContent='مستلزمات التوريد'; sub.textContent='إجمالي احتياج المكونات من كل أوامر التصنيع مقابل المخزون الحالي';
+    searchBox.style.display='none'; statusFilter.style.display='none'; addBtn.style.display='inline-flex'; addBtn.textContent='+ صنف يدوي'; exportBtn.style.display='none';
+    renderStock(); return;
+  }
+  if(currentView==='database'){
+    title.textContent='قاعدة البيانات'; sub.textContent='الكتالوج الهندسي الذي يشغّل محرك الحسابات (يقابل ورقة Database في ملفكم)';
+    searchBox.style.display='none'; statusFilter.style.display='none'; addBtn.style.display='none'; exportBtn.style.display='none';
+    renderDatabaseView(); return;
+  }
+  if(currentView==='orders'){
+    title.textContent='أوامر التصنيع'; sub.textContent='إصدار أمر تصنيع هندسي كامل: يُحسب الوزن والمقاسات والمستلزمات تلقائيًا';
+    searchBox.style.display='inline-block'; searchBox.value=searchTerm; searchBox.placeholder='بحث في أوامر التصنيع...';
+    statusFilter.style.display='inline-block';
+    statusFilter.innerHTML='<option value="">كل الحالات</option>'+['معلق','قيد التصنيع','مكتمل','ملغي'].map(s=>`<option value="${s}" ${statusTerm===s?'selected':''}>${s}</option>`).join('');
+    addBtn.style.display='inline-flex'; addBtn.textContent='+ أمر تصنيع جديد'; exportBtn.style.display='inline-flex';
+    renderOrdersList(); return;
+  }
+  if(currentView==='paints'){
+    title.textContent='اذون الدهان'; sub.textContent='إصدار إذن دهان مرتبط بأمر تصنيع مع حساب الوزن تلقائيًا';
+    searchBox.style.display='inline-block'; searchBox.value=searchTerm; searchBox.placeholder='بحث في اذون الدهان...';
+    statusFilter.style.display='inline-block';
+    statusFilter.innerHTML='<option value="">كل الحالات</option>'+['معلق','قيد التنفيذ','مكتمل'].map(s=>`<option value="${s}" ${statusTerm===s?'selected':''}>${s}</option>`).join('');
+    addBtn.style.display='inline-flex'; addBtn.textContent='+ إصدار إذن دهان'; exportBtn.style.display='inline-flex';
+    renderPaintsList(); return;
+  }
+  const m=MODULES[currentView];
+  title.textContent=m.label; sub.textContent=m.subtitle;
+  searchBox.style.display='inline-block'; searchBox.value=searchTerm; searchBox.placeholder='بحث في '+m.label+'...';
+  statusFilter.style.display='inline-block';
+  statusFilter.innerHTML='<option value="">كل الحالات</option>'+m.statuses.map(s=>`<option value="${s}" ${statusTerm===s?'selected':''}>${s}</option>`).join('');
+  addBtn.style.display='inline-flex'; addBtn.textContent='+ إصدار '+(m.key==='purchases'?'طلب شراء':'إذن توريد'); exportBtn.style.display='inline-flex';
+  renderGenericTable(m);
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function aggregateDemand(){
+  const agg = {};
+  STATE.orders.forEach(o=>{
+    if(o.status==='ملغي' || !o.bom) return;
+    o.bom.forEach(it=>{
+      if(it.qty===null) return;
+      if(!agg[it.name]) agg[it.name] = {name:it.name, unit:it.unit, needed:0};
+      agg[it.name].needed += Number(it.qty)||0;
+    });
+  });
+  Object.keys(agg).forEach(name=>{
+    const st = STATE.stock[name] || {onHand:0, threshold:0};
+    agg[name].onHand = st.onHand||0;
+    agg[name].shortfall = Math.max(0, agg[name].needed - (st.onHand||0));
+  });
+  return agg;
+}
+function renderDashboard(){
+  const c=document.getElementById('content');
+  const activeOrders = STATE.orders.filter(o=>o.status==='قيد التصنيع').length;
+  const pendingPurchaseValue = STATE.purchases.filter(p=>p.status!=='تم الاستلام'&&p.status!=='ملغي').reduce((s,p)=>s+Number(p.qty||0)*Number(p.unitPrice||0),0);
+  const agg = aggregateDemand();
+  const shortfalls = Object.values(agg).filter(a=>a.shortfall>0).length;
+  const pendingSupplies = STATE.supplies.filter(s=>s.status==='معلق').length;
+  const pendingApprovals = [...STATE.orders,...STATE.paints,...STATE.purchases,...STATE.supplies].filter(r=>approvalOf(r)==='بانتظار الاعتماد').length;
+
+  const cards=[
+    {k:'أوامر تصنيع قيد التنفيذ', v:activeOrders, d:STATE.orders.length+' إجمالي الأوامر', color:'var(--blue)'},
+    {k:'قيمة طلبات الشراء المعلقة', v:fmtMoney(pendingPurchaseValue), d:STATE.purchases.length+' طلب شراء مسجل', color:'var(--accent)'},
+    {k:'مكونات ناقصة عن الاحتياج', v:shortfalls, d:'من إجمالي أوامر التصنيع النشطة', color:'var(--amber)'},
+    {k:'اذون توريد معلقة', v:pendingSupplies, d:STATE.supplies.length+' إذن توريد إجمالي', color:'var(--bad)'},
+    {k:'بانتظار الاعتماد', v:pendingApprovals, d:'عبر كل الأوامر والأذون والطلبات', color:'var(--amber)'},
+  ];
+  let html='<div class="grid-cards">'+cards.map(c=>`<div class="card" style="--accent-c:${c.color}"><div class="k">${c.k}</div><div class="v">${c.v}</div><div class="d">${c.d}</div></div>`).join('')+'</div>';
+
+  const statusCounts={}; ['معلق','قيد التصنيع','مكتمل','ملغي'].forEach(s=>statusCounts[s]=0);
+  STATE.orders.forEach(o=>{ if(statusCounts[o.status]===undefined) statusCounts[o.status]=0; statusCounts[o.status]++; });
+  const total=STATE.orders.length||1;
+  const colorMap={amber:'var(--amber)',blue:'var(--blue)',good:'var(--good)',bad:'var(--bad)'};
+  const orderColors={'معلق':'amber','قيد التصنيع':'blue','مكتمل':'good','ملغي':'bad'};
+  let bars=Object.entries(statusCounts).map(([s,n])=>{
+    const col=colorMap[orderColors[s]]||'var(--text-faint)'; const pct=Math.round(n/total*100);
+    return `<div class="bar-row"><div class="bar-label">${s}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div><div class="bar-val">${n}</div></div>`;
+  }).join('');
+
+  let all=[];
+  STATE.orders.forEach(r=>all.push({...r,_mod:'أوامر التصنيع',_icon:'⚙',_label:r.client}));
+  STATE.paints.forEach(r=>all.push({...r,_mod:'اذون الدهان',_icon:'🎨',_label:r.itemDesc}));
+  STATE.purchases.forEach(r=>all.push({...r,_mod:'طلبات الشراء',_icon:'🛒',_label:r.itemName}));
+  STATE.supplies.forEach(r=>all.push({...r,_mod:'اذون التوريد',_icon:'🚚',_label:r.itemName}));
+  all.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); all=all.slice(0,8);
+  let activity = all.length ? all.map(r=>`<div class="activity-item"><span class="act-dot" style="background:var(--text-faint)"></span>
+      <div><div class="act-text">${r._icon} <b>${r._mod}</b> — ${r._label||''}</div><div class="act-time">${r.id} · ${timeAgo(r.createdAt||Date.now())}</div></div></div>`).join('')
+      : '<div class="empty-state" style="padding:30px 0"><div class="big">🗂</div>لا يوجد نشاط بعد</div>';
+
+  html += `<div class="panels-2"><div class="panel"><h3>⚙ حالة أوامر التصنيع</h3>${bars}</div><div class="panel"><h3>🕓 آخر النشاطات</h3>${activity}</div></div>`;
+  c.innerHTML = html;
+}
+
+/* ============================================================
+   ORDERS MODULE
+   ============================================================ */
+function orderStatusColor(){ return {'معلق':'amber','قيد التصنيع':'blue','مكتمل':'good','ملغي':'bad'}; }
+function statusBadgeHtml(status, colorMap){
+  const c = colorMap[status] || 'faint';
+  const bg = `var(--${c==='faint'?'panel-3':c}-dim, var(--panel-3))`;
+  const fg = `var(--${c==='faint'?'text-faint':c})`;
+  return `<span class="badge" style="background:${bg};color:${fg}">${status||'—'}</span>`;
+}
+function renderOrdersList(){
+  const c=document.getElementById('content');
+  let rows=STATE.orders.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(statusTerm) rows=rows.filter(r=>r.status===statusTerm);
+  if(searchTerm){ const t=searchTerm.toLowerCase(); rows=rows.filter(r=>Object.values(r).some(v=>typeof v!=='object' && String(v||'').toLowerCase().includes(t))); }
+  if(!rows.length){
+    c.innerHTML=`<div class="table-wrap"><div class="empty-state"><div class="big">⚙</div><h4>لا توجد أوامر تصنيع بعد</h4><p>اضغط "+ أمر تصنيع جديد" لبدء أول أمر — سيُحسب الوزن والمستلزمات تلقائيًا</p></div></div>`;
+    return;
+  }
+  const cols=[['id','رقم الأمر'],['client','اسم العملية'],['doorCount','عدد الأبواب'],['motorType','نوع الموتور'],
+    ['heightWidth','الأبعاد (ط×ع)'],['doorWeight','وزن الباب (كجم)'],['approval','الاعتماد'],['status','الحالة'],['date','التاريخ']];
+  let thead='<tr>'+cols.map(c=>`<th>${c[1]}</th>`).join('')+'<th></th></tr>';
+  let tbody=rows.map(r=>{
+    const w = r.calc? `${r.height}×${r.width}` : '—';
+    const dw = r.calc? fmtNum(r.calc.doorWeight,2) : '—';
+    let tds = `<td class="id-tag">${r.id}</td><td>${r.client||'—'}</td><td>${r.doorCount||'—'}</td><td>${r.motorType||'—'}</td>
+      <td>${w}</td><td>${dw}</td><td>${approvalBadgeHtml(r)}</td><td>${statusBadgeHtml(r.status, orderStatusColor())}</td><td>${r.date||'—'}</td>`;
+    let actions=`<div class="row-actions">
+      <button class="btn btn-ghost btn-sm" title="اعتماد" onclick="event.stopPropagation();openApprovalModal('orders','${r.id}')">🛡</button>
+      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDelete('orders','${r.id}')">✕</button></div>`;
+    return `<tr onclick="openOrderDetail('${r.id}')">${tds}<td>${actions}</td></tr>`;
+  }).join('');
+  c.innerHTML=`<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+}
+
+function orderFieldDefs(){
+  return [
+    {section:'بيانات العملية'},
+    {key:'client', label:'اسم العملية / العميل', type:'text', req:true, full:true},
+    {key:'date', label:'التاريخ', type:'date', req:true},
+    {key:'priority', label:'الأولوية', type:'select', options:['عادي','عاجل']},
+    {key:'status', label:'الحالة', type:'select', options:['معلق','قيد التصنيع','مكتمل','ملغي']},
+    {key:'doorCount', label:'عدد الأبواب', type:'number', req:true},
+    {section:'مواصفات الباب (تُستخدم في الحسابات)'},
+    {key:'width', label:'العرض الكلي (سم)', type:'number', req:true},
+    {key:'height', label:'الارتفاع الكلي (سم)', type:'number', req:true},
+    {key:'motorType', label:'نوع الموتور', type:'select', options:CDB.motorTypes, req:true},
+    {key:'motorPower', label:'قوة الموتور', type:'select', options:CDB.motorPowers},
+    {key:'motorDirection', label:'اتجاه الموتور', type:'select', options:CDB.motorDirections},
+    {key:'slatType', label:'نوع شريحة الستارة', type:'select', options:CDB.slatTypes.map(s=>s.name), req:true},
+    {key:'guideType', label:'نوع القوائم / المجاري', type:'select', options:CDB.guideTypes.map(g=>g.name), req:true},
+    {key:'seal', label:'نوع الإحكام', type:'select', options:CDB.seals},
+    {key:'rollDirection', label:'اتجاه الرول', type:'select', options:CDB.rollDirections},
+    {key:'rubberType', label:'نوع الكاوتش', type:'select', options:CDB.rubberTypes},
+    {key:'safetyBreak', label:'وجود سيفتي بريك', type:'select', options:CDB.yesNo},
+    {key:'housingBox', label:'العلبة الحافظة', type:'select', options:CDB.yesNo},
+    {key:'palletOverride', label:'مقاس الباليتة (اتركه فارغًا للحساب التلقائي)', type:'select', options:['',...CDB.pallets]},
+    {key:'palletWelding', label:'لحام الباليتة', type:'select', options:CDB.palletWelding},
+    {key:'paintColor', label:'كود لون الدهان', type:'select', options:CDB.paintColors},
+    {section:'ملاحظات'},
+    {key:'notes', label:'ملاحظات', type:'textarea', full:true},
+  ];
+}
+function openOrderForm(id){
+  editingId = id||null;
+  const record = id ? STATE.orders.find(r=>r.id===id) : {date:new Date().toISOString().slice(0,10), priority:'عادي', status:'معلق'};
+  const defs = orderFieldDefs();
+  let fieldsHtml = defs.map(f=>{
+    if(f.section) return `<div class="section-title">${f.section}</div>`;
+    const val = record[f.key] ?? '';
+    const reqMark = f.req ? '<span class="req"> *</span>' : '';
+    let input;
+    if(f.type==='select') input = `<select id="f_${f.key}" oninput="updateOrderPreview()">${['',...f.options].map(o=>`<option value="${o}" ${String(val)===String(o)?'selected':''}>${o||'—'}</option>`).join('')}</select>`;
+    else if(f.type==='textarea') input = `<textarea id="f_${f.key}">${val}</textarea>`;
+    else input = `<input id="f_${f.key}" type="${f.type}" value="${val}" oninput="updateOrderPreview()">`;
+    return `<div class="field ${f.full?'full':''}"><label>${f.label}${reqMark}</label>${input}</div>`;
+  }).join('');
+
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal modal-lg">
+      <div class="modal-head"><h3>${id?'تعديل':'إصدار'} أمر تصنيع</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">
+        <div class="info-note">أدخل مواصفات الباب وسيقوم النظام تلقائيًا بحساب الوزن، عدد الشرائح، عدد الماشات/الزمبلك، قطر الماسورة، ومقاس الباليتة، ثم يبني قائمة المستلزمات كاملة.</div>
+        <div class="form-grid">${fieldsHtml}</div>
+        <div id="orderPreview" style="margin-top:16px"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-accent" onclick="saveOrder()">${id?'حفظ التعديلات':'إصدار الأمر وحساب المستلزمات'}</button>
+        <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+      </div>
+    </div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+  updateOrderPreview();
+}
+function collectOrderForm(){
+  const defs = orderFieldDefs().filter(f=>!f.section);
+  const o = {};
+  defs.forEach(f=>{ const el=document.getElementById('f_'+f.key); if(el) o[f.key]=el.value; });
+  return o;
+}
+function updateOrderPreview(){
+  const box = document.getElementById('orderPreview');
+  if(!box) return;
+  const o = collectOrderForm();
+  if(!o.width || !o.height || !o.slatType || !o.guideType || !o.motorType){
+    box.innerHTML = `<div class="info-note">أكمل العرض/الارتفاع/نوع الشريحة/القوائم/الموتور لعرض الحسابات الهندسية.</div>`;
+    return;
+  }
+  const calc = runCalc(o);
+  if(!calc){ box.innerHTML=''; return; }
+  box.innerHTML = `<div class="section-title" style="border:none;margin:0 0 10px">النتائج الهندسية المحسوبة</div>
+    <div class="spec-grid">
+      <div class="spec-item"><div class="l">وزن الباب</div><div class="v">${fmtNum(calc.doorWeight,3)} كجم</div></div>
+      <div class="spec-item"><div class="l">طول الماسورة</div><div class="v">${calc.pipeLength} سم</div></div>
+      <div class="spec-item"><div class="l">قطر الماسورة</div><div class="v">${calc.diameter.label}</div></div>
+      <div class="spec-item"><div class="l">عرض الستارة الفعلي</div><div class="v">${calc.curtainWidth} سم</div></div>
+      <div class="spec-item"><div class="l">عدد الشرائح</div><div class="v">${calc.slatCount}${calc.badiCount!==null?' + '+calc.badiCount+' بادي':''}</div></div>
+      <div class="spec-item"><div class="l">عدد الماشات/الزمبلك</div><div class="v">${calc.bracketFinal} (تباعد ${calc.bracketSpacing} سم)</div></div>
+      <div class="spec-item"><div class="l">مقاس الباليتة</div><div class="v">${calc.palletSize}×${calc.palletSize}${o.palletOverride?' (يدوي)':' (تلقائي)'}</div></div>
+      <div class="spec-item"><div class="l">طول العلبة / المجرى</div><div class="v">${calc.boxLength} / ${calc.railLength} سم</div></div>
+    </div>`;
+}
+async function saveOrder(){
+  const defs = orderFieldDefs().filter(f=>!f.section);
+  const missing = defs.filter(f=>f.req && !document.getElementById('f_'+f.key).value.trim());
+  if(missing.length){ showToast('برجاء تعبئة: '+missing.map(f=>f.label).join('، '), true); return; }
+  const o = collectOrderForm();
+  const existing = editingId ? STATE.orders.find(r=>r.id===editingId) : null;
+  if(!checkApprovalGate('orders', existing, o.status)) return;
+  const calc = runCalc(o);
+  if(!calc){ showToast('تعذر حساب المواصفات — تحقق من نوع الشريحة والقوائم', true); return; }
+  const bom = buildBOM(o, calc);
+  let record = existing || {id: nextId('MO'), createdAt: Date.now(), approvalStatus:'بانتظار الاعتماد'};
+  Object.assign(record, o, {calc, bom});
+  if(!editingId) STATE.orders.push(record);
+  await storeSet('orders', STATE.orders);
+  closeModal(); showToast(editingId?'تم حفظ التعديلات':'تم إصدار أمر التصنيع '+record.id+' وحساب المستلزمات'); render();
+}
+
+function bracketRowsHtml(o, calc){
+  let rows = '';
+  if(o.motorType==='منتصف'){
+    rows += `<div class="print-row" style="border-color:var(--line)"><span>الزمبلك والطنابير</span><span>${calc.bracketFinal} طنابير+زمبلكات ${calc.cableLength}</span></div>`;
+  }
+  rows += `<div class="print-row" style="border-color:var(--line)"><span>الماشات</span><span>${bracketMaterial(o.motorType,calc.slat.key)}${o.motorType==='اسطواني'?` , تباعد ${calc.bracketSpacing} سم`:''} — الكمية ${calc.bracketQty}</span></div>`;
+  return rows;
+}
+function printBracketRowsHtml(o, calc){
+  let rows = '';
+  if(o.motorType==='منتصف'){
+    rows += `<div class="print-row"><span>الزمبلك والطنابير</span><span>${calc.bracketFinal} طنابير+زمبلكات ${calc.cableLength}</span></div>`;
+  }
+  rows += `<div class="print-row"><span>الماشات</span><span>${bracketMaterial(o.motorType,calc.slat.key)}${o.motorType==='اسطواني'?` , تباعد ${calc.bracketSpacing} سم`:''} — الكمية ${calc.bracketQty}</span></div>`;
+  return rows;
+}
+function openOrderDetail(id){
+  orderDetailId = id; orderDetailTab = 'overview';
+  renderOrderDetailModal();
+}
+function switchOrderTab(tab){ orderDetailTab = tab; renderOrderDetailModal(); }
+function renderOrderDetailModal(){
+  const o = STATE.orders.find(r=>r.id===orderDetailId);
+  if(!o) return;
+  const calc = o.calc || {};
+  const tabs = [['overview','البيانات والحسابات'],['bom','المستلزمات (BOM)'],['workorder','أمر التشغيل (المجاري والماسورة والباليتات)']];
+  let tabsHtml = tabs.map(t=>`<button class="tab-btn ${orderDetailTab===t[0]?'active':''}" onclick="switchOrderTab('${t[0]}')">${t[1]}</button>`).join('');
+
+  let body='';
+  if(orderDetailTab==='overview'){
+    body = `<div class="spec-grid">
+      <div class="spec-item"><div class="l">العميل</div><div class="v" style="font-family:'Tajawal',sans-serif">${o.client}</div></div>
+      <div class="spec-item"><div class="l">عدد الأبواب</div><div class="v">${o.doorCount}</div></div>
+      <div class="spec-item"><div class="l">الأبعاد</div><div class="v">${o.height}×${o.width} سم</div></div>
+      <div class="spec-item"><div class="l">نوع الموتور</div><div class="v" style="font-family:'Tajawal',sans-serif">${o.motorType} (${o.motorPower||'—'})</div></div>
+      <div class="spec-item"><div class="l">نوع الشريحة</div><div class="v" style="font-family:'Tajawal',sans-serif;font-size:12px">${o.slatType}</div></div>
+      <div class="spec-item"><div class="l">القوائم</div><div class="v" style="font-family:'Tajawal',sans-serif;font-size:12px">${o.guideType}</div></div>
+      <div class="spec-item"><div class="l">وزن الباب (محسوب)</div><div class="v" style="color:var(--accent)">${fmtNum(calc.doorWeight,3)} كجم</div></div>
+      <div class="spec-item"><div class="l">طول الماسورة</div><div class="v">${calc.pipeLength} سم</div></div>
+      <div class="spec-item"><div class="l">قطر الماسورة</div><div class="v" style="font-size:12px">${calc.diameter?.label||'—'}</div></div>
+      <div class="spec-item"><div class="l">عدد الشرائح</div><div class="v">${calc.slatCount}</div></div>
+      <div class="spec-item"><div class="l">عدد الماشات/الزمبلك</div><div class="v">${calc.bracketFinal} (${calc.bracketSpacing} سم)</div></div>
+      <div class="spec-item"><div class="l">مقاس الباليتة</div><div class="v">${calc.palletSize}×${calc.palletSize}</div></div>
+      <div class="spec-item"><div class="l">طول العلبة/المجرى</div><div class="v">${calc.boxLength}/${calc.railLength} سم</div></div>
+      <div class="spec-item"><div class="l">فتحة المجرى</div><div class="v">${calc.opening} سم</div></div>
+      <div class="spec-item"><div class="l">الحالة</div><div class="v">${o.status}</div></div>
+      <div class="spec-item"><div class="l">الاعتماد</div><div class="v">${approvalBadgeHtml(o)}</div></div>
+    </div>${o.approvedBy?`<div class="info-note" style="margin-top:14px">${approvalOf(o)==='مرفوض'?'مرفوض':'معتمد'} بواسطة <b>${o.approvedBy}</b> — ${new Date(o.approvedAt).toLocaleString('ar-EG')}${approvalOf(o)==='مرفوض'&&o.rejectionReason?`<br>سبب الرفض: ${o.rejectionReason}`:''}</div>`:''}
+    ${o.notes?`<div class="info-note" style="margin-top:14px">ملاحظات: ${o.notes}</div>`:''}`;
+  } else if(orderDetailTab==='bom'){
+    const rows = (o.bom||[]).map(it=>`<tr><td>${it.name}</td><td>${it.description||'—'}</td><td>${it.qty===null?'يدوي':fmtNum(it.qty,0)}</td><td>${it.unit||''}</td></tr>`).join('');
+    body = `<div class="table-wrap"><table><thead><tr><th>الصنف</th><th>التوصيف</th><th>الكمية</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } else if(orderDetailTab==='workorder'){
+    const pallet = o.motorType==='منتصف'? `${calc.palletSize}×${calc.palletSize} منتصف` : `${calc.palletSize}×${calc.palletSize} موتور ${motorOpeningLabel(calc.diameter.mm)} & ${calc.palletSize}×${calc.palletSize} رومان بلي`;
+    body = `<div class="print-sheet" style="color:var(--text);background:var(--panel-2);border:1px solid var(--line)">
+      <div class="pb" style="padding:16px">
+        <div class="print-row" style="border-color:var(--line)"><span>اسم العملية</span><span>${o.client}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>عدد الأبواب</span><span>${o.doorCount}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>الارتفاع الكلي</span><span>${o.height} سم</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>نوع الباب</span><span>${o.motorType}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>المجاري</span><span>${o.guideType} — طول العلبة ${calc.boxLength} / المجرى ${calc.railLength}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>الباليته</span><span>${pallet}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>مقاس الماسورة</span><span>${calc.diameter?.label} طول ${calc.pipeLength}</span></div>
+        ${bracketRowsHtml(o, calc)}
+        <div class="print-row" style="border-color:var(--line)"><span>عزم الموتور</span><span>${o.motorPower||'—'}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>اتجاه الموتور</span><span>${o.motorDirection||'—'}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>لحام الباليتة</span><span>${o.palletWelding||'—'}</span></div>
+        <div class="print-row" style="border-color:var(--line)"><span>وزن الباب</span><span>${fmtNum(calc.doorWeight,3)} كجم</span></div>
+      </div></div>
+      <div style="margin-top:12px"><button class="btn btn-accent btn-sm" onclick="printWorkOrder('${o.id}')">🖨 طباعة أمر التشغيل</button></div>`;
+  }
+
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal modal-lg">
+      <div class="modal-head"><h3>${o.id} — ${o.client}</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+      <div class="modal-body"><div class="tabs">${tabsHtml}</div>${body}</div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal();openOrderForm('${o.id}')">✎ تعديل الأمر</button>
+        <button class="btn btn-ghost" onclick="openApprovalModal('orders','${o.id}')">🛡 اعتماد</button>
+        <button class="btn btn-ghost" onclick="exportOrderCSV('${o.id}')">⤓ تصدير المستلزمات CSV</button>
+        <button class="btn btn-ghost" onclick="closeModal()">إغلاق</button>
+      </div>
+    </div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+}
+function printWorkOrder(id){
+  const o = STATE.orders.find(r=>r.id===id); const calc=o.calc;
+  const pallet = o.motorType==='منتصف'? `${calc.palletSize}×${calc.palletSize} منتصف` : `${calc.palletSize}×${calc.palletSize} موتور ${motorOpeningLabel(calc.diameter.mm)} & ${calc.palletSize}×${calc.palletSize} رومان بلي`;
+  const sheet = `<div class="print-sheet" style="width:500px"><div class="ph"><h2>أمر التشغيل — المجاري والماسورة والباليتات</h2><p>${o.id} · MEC</p></div>
+    <div class="pb">
+      <div class="print-row"><span>اسم العملية</span><span>${o.client}</span></div>
+      <div class="print-row"><span>عدد الأبواب</span><span>${o.doorCount}</span></div>
+      <div class="print-row"><span>الارتفاع الكلي</span><span>${o.height} سم</span></div>
+      <div class="print-row"><span>نوع الباب</span><span>${o.motorType}</span></div>
+      <div class="print-row"><span>المجاري</span><span>${o.guideType} طول العلبة ${calc.boxLength} طول المجرى ${calc.railLength}</span></div>
+      <div class="print-row"><span>الباليته</span><span>${pallet}</span></div>
+      <div class="print-row"><span>مقاس الماسورة</span><span>${calc.diameter.label} طول ${calc.pipeLength}</span></div>
+      ${printBracketRowsHtml(o, calc)}
+      <div class="print-row"><span>عزم الموتور</span><span>${o.motorPower||'—'}</span></div>
+      <div class="print-row"><span>اتجاه الموتور</span><span>${o.motorDirection||'—'}</span></div>
+      <div class="print-row"><span>لحام الباليتة</span><span>${o.palletWelding||'—'}</span></div>
+      <div class="print-row"><span>وزن الباب</span><span>${fmtNum(calc.doorWeight,3)} كجم</span></div>
+      <div class="print-row"><span>حالة الاعتماد</span><span>${approvalOf(o)}${o.approvedBy?' — '+o.approvedBy:''}</span></div>
+      <div class="print-sign"><div>مسؤول الورشة</div><div>مراقب الجودة</div></div>
+    </div></div>`;
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal" style="width:auto;background:transparent;border:none">
+      <div id="printArea">${sheet}</div>
+      <div class="modal-foot" style="justify-content:center;background:var(--panel);border-radius:0 0 14px 14px;border:1px solid var(--line);border-top:none">
+        <button class="btn btn-accent" onclick="window.print()">🖨 طباعة</button>
+        <button class="btn btn-ghost" onclick="closeModal()">إغلاق</button>
+      </div></div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+}
+function exportOrderCSV(id){
+  const o = STATE.orders.find(r=>r.id===id);
+  let csv='\uFEFF'+['الصنف','التوصيف','الكمية','الوحدة'].join(',')+'\n';
+  (o.bom||[]).forEach(it=>{ csv += [it.name,'"'+String(it.description||'').replace(/"/g,'""')+'"', it.qty===null?'يدوي':it.qty, it.unit||''].join(',')+'\n'; });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=id+'_مستلزمات.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   PAINTS MODULE
+   ============================================================ */
+function paintStatusColor(){ return {'معلق':'amber','قيد التنفيذ':'blue','مكتمل':'good'}; }
+function renderPaintsList(){
+  const c=document.getElementById('content');
+  let rows=STATE.paints.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(statusTerm) rows=rows.filter(r=>r.status===statusTerm);
+  if(searchTerm){ const t=searchTerm.toLowerCase(); rows=rows.filter(r=>Object.values(r).some(v=>typeof v!=='object' && String(v||'').toLowerCase().includes(t))); }
+  if(!rows.length){
+    c.innerHTML=`<div class="table-wrap"><div class="empty-state"><div class="big">🎨</div><h4>لا توجد اذون دهان بعد</h4><p>اضغط "+ إصدار إذن دهان"</p></div></div>`;
+    return;
+  }
+  let thead='<tr><th>رقم الإذن</th><th>البيان</th><th>أمر التصنيع</th><th>الوزن (كجم)</th><th>الاعتماد</th><th>الحالة</th><th>التاريخ</th><th></th></tr>';
+  let tbody=rows.map(r=>{
+    return `<tr onclick="openPaintForm('${r.id}')"><td class="id-tag">${r.id}</td><td>${r.itemDesc||'—'}</td><td>${r.linkedOrder||'—'}</td>
+      <td>${fmtNum(r.totalWeightKg,2)}</td><td>${approvalBadgeHtml(r)}</td><td>${statusBadgeHtml(r.status, paintStatusColor())}</td><td>${r.date||'—'}</td>
+      <td><div class="row-actions"><button class="btn btn-ghost btn-sm" title="اعتماد" onclick="event.stopPropagation();openApprovalModal('paints','${r.id}')">🛡</button>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();printPaintPermit('${r.id}')">🖨</button>
+      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDelete('paints','${r.id}')">✕</button></div></td></tr>`;
+  }).join('');
+  c.innerHTML=`<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+}
+function openPaintForm(id){
+  editingId=id||null;
+  const record = id ? STATE.paints.find(r=>r.id===id) : {date:new Date().toISOString().slice(0,10), status:'معلق'};
+  const orderOptions = STATE.orders.map(o=>`<option value="${o.id}" ${record.linkedOrder===o.id?'selected':''}>${o.id} — ${o.client}</option>`).join('');
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${id?'تعديل':'إصدار'} إذن دهان</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">
+        ${id?`<div class="info-note" style="margin-bottom:14px">حالة الاعتماد: ${approvalBadgeHtml(record)}${record.approvedBy?` — بواسطة ${record.approvedBy}`:''}</div>`:''}
+        <div class="form-grid">
+          <div class="field full"><label>البيان (الصنف / العملية)<span class="req"> *</span></label><input id="f_itemDesc" value="${record.itemDesc||''}"></div>
+          <div class="field full"><label>ربط بأمر تصنيع (اختياري — لحساب الوزن تلقائيًا)</label>
+            <select id="f_linkedOrder" onchange="pullOrderWeight()"><option value="">— بدون ربط —</option>${orderOptions}</select></div>
+          <div class="field"><label>التاريخ<span class="req"> *</span></label><input id="f_date" type="date" value="${record.date||''}"></div>
+          <div class="field"><label>مورد الدهان</label><select id="f_supplier">${['',...CDB.paintSuppliers].map(s=>`<option ${record.supplier===s?'selected':''}>${s}</option>`).join('')}</select></div>
+          <div class="field"><label>الوزن الكلي (كجم)</label><input id="f_totalWeightKg" type="number" value="${record.totalWeightKg||''}" oninput="updatePaintLive()"></div>
+          <div class="field"><label>سعر الدهان للكيلو (ج.م)</label><input id="f_paintPricePerKg" type="number" value="${record.paintPricePerKg||''}" oninput="updatePaintLive()"></div>
+          <div class="field"><label>الناقل</label><select id="f_driver">${['',...CDB.drivers].map(s=>`<option ${record.driver===s?'selected':''}>${s}</option>`).join('')}</select></div>
+          <div class="field"><label>الحالة</label><select id="f_status">${['معلق','قيد التنفيذ','مكتمل'].map(s=>`<option ${record.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+          <div class="field full"><label>ملاحظات</label><textarea id="f_notes">${record.notes||''}</textarea></div>
+        </div>
+        <div class="computed-box" id="paintLiveTotal" style="margin-top:14px"><span>التكلفة الكلية</span><b id="paintLiveVal">0 ج.م</b></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-accent" onclick="savePaint()">${id?'حفظ التعديلات':'إصدار'}</button>
+        ${id?`<button class="btn btn-ghost" onclick="openApprovalModal('paints','${id}')">🛡 اعتماد</button>`:''}
+        <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+      </div>
+    </div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+  updatePaintLive();
+}
+function pullOrderWeight(){
+  const orderId = document.getElementById('f_linkedOrder').value;
+  const o = STATE.orders.find(x=>x.id===orderId);
+  if(!o || !o.calc) return;
+  const w = paintWeightEstimate(o, o.calc);
+  document.getElementById('f_totalWeightKg').value = w;
+  document.getElementById('f_itemDesc').value = 'دهان أبواب — '+o.client;
+  updatePaintLive();
+}
+function updatePaintLive(){
+  const w = Number(document.getElementById('f_totalWeightKg')?.value||0);
+  const p = Number(document.getElementById('f_paintPricePerKg')?.value||0);
+  const el = document.getElementById('paintLiveVal'); if(el) el.textContent = fmtMoney(w*p);
+}
+async function savePaint(){
+  const itemDesc = document.getElementById('f_itemDesc').value.trim();
+  const date = document.getElementById('f_date').value;
+  if(!itemDesc || !date){ showToast('برجاء تعبئة البيان والتاريخ', true); return; }
+  const existing = editingId ? STATE.paints.find(r=>r.id===editingId) : null;
+  const newStatus = document.getElementById('f_status').value;
+  if(!checkApprovalGate('paints', existing, newStatus)) return;
+  let record = existing || {id: nextId('PT'), createdAt: Date.now(), approvalStatus:'بانتظار الاعتماد'};
+  Object.assign(record, {
+    itemDesc, date, linkedOrder: document.getElementById('f_linkedOrder').value,
+    supplier: document.getElementById('f_supplier').value, driver: document.getElementById('f_driver').value,
+    totalWeightKg: document.getElementById('f_totalWeightKg').value, paintPricePerKg: document.getElementById('f_paintPricePerKg').value,
+    status: document.getElementById('f_status').value, notes: document.getElementById('f_notes').value,
+  });
+  if(!editingId) STATE.paints.push(record);
+  await storeSet('paints', STATE.paints);
+  closeModal(); showToast(editingId?'تم حفظ التعديلات':'تم إصدار إذن الدهان '+record.id); render();
+}
+function printPaintPermit(id){
+  const r = STATE.paints.find(x=>x.id===id);
+  const total = Number(r.totalWeightKg||0)*Number(r.paintPricePerKg||0);
+  const sheet = `<div class="print-sheet" style="width:480px"><div class="ph"><h2>إذن دهان — ${r.id}</h2><p>MEC · نظام إدارة التصنيع</p></div>
+    <div class="pb">
+      <div class="print-row"><span>البيان</span><span>${r.itemDesc}</span></div>
+      <div class="print-row"><span>مرتبط بأمر</span><span>${r.linkedOrder||'—'}</span></div>
+      <div class="print-row"><span>التاريخ</span><span>${r.date}</span></div>
+      <div class="print-row"><span>مورد الدهان</span><span>${r.supplier||'—'}</span></div>
+      <div class="print-row"><span>الوزن الكلي</span><span>${fmtNum(r.totalWeightKg,2)} كجم</span></div>
+      <div class="print-row"><span>سعر الكيلو</span><span>${fmtMoney(r.paintPricePerKg)}</span></div>
+      <div class="print-row"><span>الناقل</span><span>${r.driver||'—'}</span></div>
+      <div class="print-row"><span>حالة الاعتماد</span><span>${approvalOf(r)}${r.approvedBy?' — '+r.approvedBy:''}</span></div>
+      ${r.notes?`<p style="font-size:12px;color:#777;margin-top:10px">ملاحظات: ${r.notes}</p>`:''}
+      <div class="print-total"><span>الإجمالي</span><span>${fmtMoney(total)}</span></div>
+      <div class="print-sign"><div>توقيع المسؤول</div><div>توقيع الناقل</div></div>
+    </div></div>`;
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal" style="width:auto;background:transparent;border:none">
+      <div id="printArea">${sheet}</div>
+      <div class="modal-foot" style="justify-content:center;background:var(--panel);border-radius:0 0 14px 14px;border:1px solid var(--line);border-top:none">
+        <button class="btn btn-accent" onclick="window.print()">🖨 طباعة</button><button class="btn btn-ghost" onclick="closeModal()">إغلاق</button>
+      </div></div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+}
+
+/* ============================================================
+   STOCK / مستلزمات التوريد MODULE
+   ============================================================ */
+function renderStock(){
+  const c=document.getElementById('content');
+  const agg = aggregateDemand();
+  Object.keys(STATE.stock).forEach(name=>{ if(!agg[name]) agg[name] = {name, unit:STATE.stock[name].unit||'قطعة', needed:0, onHand:STATE.stock[name].onHand||0, shortfall:0}; });
+  const rows = Object.values(agg).sort((a,b)=> b.shortfall-a.shortfall || a.name.localeCompare(b.name,'ar'));
+  if(!rows.length){
+    c.innerHTML = `<div class="table-wrap"><div class="empty-state"><div class="big">📦</div><h4>لا توجد مستلزمات بعد</h4><p>ستظهر هنا تلقائيًا احتياجات كل أوامر التصنيع بمجرد إصدارها</p></div></div>`;
+    return;
+  }
+  let thead='<tr><th>الصنف</th><th>الوحدة</th><th>المطلوب من الأوامر الحالية</th><th>الكمية بالمخزن</th><th>الفرق (نقص)</th><th></th></tr>';
+  let tbody = rows.map(r=>{
+    const shortColor = r.shortfall>0? 'var(--bad)':'var(--good)';
+    return `<tr>
+      <td>${r.name}</td><td>${r.unit||'—'}</td><td class="mono">${fmtNum(r.needed,0)}</td>
+      <td><input type="number" value="${r.onHand}" style="width:90px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text)" onchange="updateStockOnHand('${r.name.replace(/'/g,"\\'")}', this.value, '${(r.unit||'قطعة').replace(/'/g,"\\'")}')"></td>
+      <td class="mono" style="color:${shortColor};font-weight:700">${fmtNum(r.shortfall,0)}</td>
+      <td>${r.shortfall>0?`<button class="btn btn-accent btn-sm" onclick="requestPurchaseFor('${r.name.replace(/'/g,"\\'")}', ${r.shortfall}, '${(r.unit||'قطعة').replace(/'/g,"\\'")}')">🛒 طلب شراء</button>`:'<span style="color:var(--text-faint)">مكتفٍ</span>'}</td>
+    </tr>`;
+  }).join('');
+  c.innerHTML = `<div class="info-note">الأرقام في عمود "المطلوب" مجمّعة تلقائيًا من قوائم مستلزمات كل أوامر التصنيع النشطة (غير الملغاة). حدّث عمود "الكمية بالمخزن" لمتابعة النقص.</div>
+    <div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+}
+async function updateStockOnHand(name, value, unit){
+  STATE.stock[name] = {onHand: Number(value)||0, unit};
+  await storeSet('stock', STATE.stock);
+  renderNav();
+}
+function requestPurchaseFor(name, qty, unit){
+  currentView='purchases';
+  openGenericForm('purchases', null, {itemName:name, qty, unit});
+}
+
+/* ============================================================
+   DATABASE / SETTINGS MODULE
+   ============================================================ */
+function renderDatabaseView(){
+  const c = document.getElementById('content');
+  let html = `<div class="info-note">هذا هو الكتالوج الذي يشغّل محرك حسابات أوامر التصنيع (يقابل ورقة "Database" في ملفكم الأصلي). أي تعديل هنا ينعكس فورًا على الأوامر الجديدة.</div>`;
+
+  html += `<div class="db-cat"><h4>🧵 أنواع شرائح الستارة</h4><div class="table-wrap"><table><thead><tr><th>النوع</th><th>عرض الشريحة</th><th>عرض البادي</th><th>الوزن/م²</th><th>مجموعة الباليتة</th><th></th></tr></thead><tbody>
+    ${CDB.slatTypes.map((s,i)=>`<tr><td>${s.name}</td><td class="mono">${s.width}</td><td class="mono">${s.badi}</td><td class="mono">${s.weightSqm}</td><td class="mono">${s.palletGroup}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteDbItem('slatTypes',${i})">✕</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="mini-add">
+      <input id="ns_name" placeholder="اسم النوع"><input id="ns_width" type="number" placeholder="عرض الشريحة" style="width:110px">
+      <input id="ns_badi" type="number" placeholder="عرض البادي" style="width:110px"><input id="ns_weight" type="number" placeholder="الوزن/م²" style="width:100px">
+      <select id="ns_group"><option value="C">مجموعة C (35/40/45/50 حسب الارتفاع)</option><option value="G">مجموعة G (40/45/50)</option><option value="B">مجموعة B (حسب اتجاه الرول)</option><option value="F">مجموعة F (40/45 فقط)</option></select>
+      <button class="btn btn-accent btn-sm" onclick="addSlatType()">+ إضافة</button>
+    </div></div>`;
+
+  html += `<div class="db-cat"><h4>📏 أنواع القوائم / المجاري</h4><div class="table-wrap"><table><thead><tr><th>النوع</th><th>الوزن لكل متر</th><th>نوع علبة بمجرى؟</th><th></th></tr></thead><tbody>
+    ${CDB.guideTypes.map((g,i)=>`<tr><td>${g.name}</td><td class="mono">${g.weightPerMeter}</td><td>${g.boxType?'نعم':'لا'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteDbItem('guideTypes',${i})">✕</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="mini-add"><input id="ng_name" placeholder="اسم النوع"><input id="ng_weight" type="number" placeholder="الوزن/م" style="width:100px">
+      <select id="ng_box"><option value="false">مدمج</option><option value="true">علبة بمجرى</option></select>
+      <button class="btn btn-accent btn-sm" onclick="addGuideType()">+ إضافة</button></div></div>`;
+
+  const simple = [
+    ['motorPowers','⚡ قوة الموتور'], ['paintColors','🎨 ألوان الدهان'], ['paintSuppliers','🏭 موردي الدهان'],
+    ['drivers','🚚 السائقين'], ['rubberTypes','🧷 أنواع الكاوتش'], ['seals','🔒 نوع الإحكام'],
+    ['rollDirections','↔️ اتجاه الرول'], ['motorDirections','↩️ اتجاه الموتور'], ['palletWelding','🔩 لحام الباليتة'],
+  ];
+  simple.forEach(([key,label])=>{
+    html += `<div class="db-cat"><h4>${label}</h4><div>${CDB[key].map((v,i)=>`<span class="chip">${v}<button onclick="deleteDbItem('${key}',${i})">✕</button></span>`).join('')}</div>
+      <div class="mini-add"><input id="add_${key}" placeholder="إضافة قيمة جديدة"><button class="btn btn-accent btn-sm" onclick="addSimple('${key}')">+ إضافة</button></div></div>`;
+  });
+
+  c.innerHTML = html;
+}
+async function persistDB(){ await storeSet('engineDB', CDB); render(); showToast('تم تحديث قاعدة البيانات'); }
+function addSlatType(){
+  const name=document.getElementById('ns_name').value.trim(); if(!name) return;
+  CDB.slatTypes.push({key:'C'+Date.now(), name, width:Number(document.getElementById('ns_width').value)||10,
+    badi:Number(document.getElementById('ns_badi').value)||0, weightSqm:Number(document.getElementById('ns_weight').value)||10,
+    palletGroup:document.getElementById('ns_group').value});
+  persistDB();
+}
+function addGuideType(){
+  const name=document.getElementById('ng_name').value.trim(); if(!name) return;
+  CDB.guideTypes.push({name, weightPerMeter:Number(document.getElementById('ng_weight').value)||5, boxType:document.getElementById('ng_box').value==='true'});
+  persistDB();
+}
+function addSimple(key){
+  const el = document.getElementById('add_'+key); const v = el.value.trim(); if(!v) return;
+  CDB[key].push(v); persistDB();
+}
+function deleteDbItem(key, idx){ CDB[key].splice(idx,1); persistDB(); }
+
+/* ============================================================
+   GENERIC MODULE TABLE (purchases / supplies)
+   ============================================================ */
+function renderGenericTable(m){
+  const c = document.getElementById('content');
+  let rows = STATE[m.key].slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(statusTerm) rows = rows.filter(r=>r.status===statusTerm);
+  if(searchTerm){ const t=searchTerm.toLowerCase(); rows = rows.filter(r => Object.values(r).some(v => String(v||'').toLowerCase().includes(t))); }
+  if(!rows.length){
+    c.innerHTML = `<div class="table-wrap"><div class="empty-state"><div class="big">${m.icon}</div><h4>لا توجد سجلات ${m.label} بعد</h4><p>اضغط "+ إضافة" لإنشاء أول سجل</p></div></div>`;
+    return;
+  }
+  let thead = '<tr>' + m.columns.map(col=>`<th>${col.label}</th>`).join('') + '<th></th></tr>';
+  let tbody = rows.map(r=>{
+    let tds = m.columns.map(col=>{
+      let val;
+      if(col.compute) val = fmtMoney(m.computeTotal(r));
+      else val = r[col.key];
+      if(col.key==='id') return `<td class="id-tag">${val}</td>`;
+      if(col.key==='approvalStatus') return `<td>${approvalBadgeHtml(r)}</td>`;
+      if(col.badge) return `<td>${statusBadgeHtml(r[col.key], m.statusColor)}</td>`;
+      return `<td>${val===undefined||val===null||val===''?'<span style="color:var(--text-faint)">—</span>':val}</td>`;
+    }).join('');
+    let actions = `<div class="row-actions">
+      <button class="btn btn-ghost btn-sm" title="اعتماد" onclick="event.stopPropagation();openApprovalModal('${m.key}','${r.id}')">🛡</button>
+      ${m.printable?`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();printGenericPermit('${m.key}','${r.id}')">🖨</button>`:''}
+      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDelete('${m.key}','${r.id}')">✕</button></div>`;
+    return `<tr onclick="openGenericForm('${m.key}','${r.id}')">${tds}<td>${actions}</td></tr>`;
+  }).join('');
+  c.innerHTML = `<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+}
+function openGenericForm(modKey, id, prefill){
+  editingId = id||null;
+  const m = MODULES[modKey];
+  const record = id ? STATE[m.key].find(r=>r.id===id) : Object.assign({date:new Date().toISOString().slice(0,10)}, prefill||{});
+  const fieldsHtml = m.fields.map(f=>{
+    const val = record[f.key] ?? '';
+    const reqMark = f.req ? '<span class="req"> *</span>' : '';
+    let input;
+    if(f.type==='select') input = `<select id="f_${f.key}">${['',...f.options].map(o=>`<option value="${o}" ${val===o?'selected':''}>${o||'—'}</option>`).join('')}</select>`;
+    else if(f.type==='textarea') input = `<textarea id="f_${f.key}">${val}</textarea>`;
+    else if(f.type==='ref'){
+      const refMod = MODULES[f.ref];
+      input = `<input id="f_${f.key}" list="dl_${f.key}" value="${val}" placeholder="اكتب أو اختر">
+        <datalist id="dl_${f.key}">${STATE[refMod.key].map(r=>`<option value="${r.id}">${r.id} — ${r.itemName||''}</option>`).join('')}</datalist>`;
+    } else input = `<input id="f_${f.key}" type="${f.type}" value="${val}">`;
+    return `<div class="field ${f.full?'full':''}"><label>${f.label}${reqMark}</label>${input}</div>`;
+  }).join('');
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${id?'تعديل':'إصدار'} — ${m.label}</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">
+        ${id?`<div class="info-note" style="margin-bottom:14px">حالة الاعتماد: ${approvalBadgeHtml(record)}${record.approvedBy?` — بواسطة ${record.approvedBy}`:''}</div>`:''}
+        <div class="form-grid">${fieldsHtml}</div>
+        ${m.computeTotal ? `<div class="computed-box" id="liveTotal" style="margin-top:14px"><span>الإجمالي المحسوب</span><b id="liveTotalVal">0 ج.م</b></div>`:''}
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-accent" onclick="saveGenericForm('${modKey}')">${id?'حفظ التعديلات':'إصدار'}</button>
+        ${id?`<button class="btn btn-ghost" onclick="openApprovalModal('${modKey}','${id}')">🛡 اعتماد</button>`:''}
+        <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+      </div>
+    </div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+  if(m.computeTotal){
+    const updateLive = () => { const tmp={}; m.fields.forEach(f=>{ const el=document.getElementById('f_'+f.key); if(el) tmp[f.key]=el.value; }); document.getElementById('liveTotalVal').textContent = fmtMoney(m.computeTotal(tmp)); };
+    m.fields.forEach(f=>{ const el=document.getElementById('f_'+f.key); if(el) el.addEventListener('input', updateLive); });
+    updateLive();
+  }
+}
+async function saveGenericForm(modKey){
+  const m = MODULES[modKey];
+  const missing = m.fields.filter(f=>f.req && !document.getElementById('f_'+f.key).value.trim());
+  if(missing.length){ showToast('برجاء تعبئة: '+missing.map(f=>f.label).join('، '), true); return; }
+  const existing = editingId ? STATE[m.key].find(r=>r.id===editingId) : null;
+  const statusEl = document.getElementById('f_status');
+  if(statusEl && !checkApprovalGate(modKey, existing, statusEl.value)) return;
+  let record = existing || {id: nextId(m.prefix), createdAt: Date.now(), approvalStatus:'بانتظار الاعتماد'};
+  m.fields.forEach(f=>{ record[f.key] = document.getElementById('f_'+f.key).value; });
+  if(!editingId) STATE[m.key].push(record);
+  await storeSet(m.key, STATE[m.key]);
+  closeModal(); showToast(editingId?'تم حفظ التعديلات':'تم الإصدار بنجاح — '+record.id); render();
+}
+function printGenericPermit(modKey, id){
+  const m = MODULES[modKey]; const r = STATE[modKey].find(x=>x.id===id);
+  let rowsHtml = m.fields.filter(f=>f.type!=='textarea').map(f=>`<div class="print-row"><span>${f.label}</span><span>${r[f.key]||'—'}</span></div>`).join('');
+  const approvalRow = `<div class="print-row"><span>حالة الاعتماد</span><span>${approvalOf(r)}${r.approvedBy?' — '+r.approvedBy:''}</span></div>`;
+  const notesHtml = r.notes ? `<div class="print-row" style="display:block"><span>ملاحظات</span><p style="margin:6px 0 0;font-weight:400">${r.notes}</p></div>` : '';
+  const sheet = `<div class="print-sheet" style="width:520px;max-width:100%"><div class="ph"><h2>${m.label} — ${r.id}</h2><p>MEC · نظام إدارة التصنيع</p></div>
+    <div class="pb">${rowsHtml}${approvalRow}${notesHtml}<div class="print-sign"><div>توقيع المسؤول</div><div>توقيع المستلم</div></div></div></div>`;
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal" style="width:auto;background:transparent;border:none">
+      <div id="printArea">${sheet}</div>
+      <div class="modal-foot" style="justify-content:center;background:var(--panel);border-radius:0 0 14px 14px;border:1px solid var(--line);border-top:none">
+        <button class="btn btn-accent" onclick="window.print()">🖨 طباعة</button><button class="btn btn-ghost" onclick="closeModal()">إغلاق</button>
+      </div></div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+}
+
+/* ============================================================
+   SHARED: MODAL / DELETE / TOAST / EXPORT
+   ============================================================ */
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; editingId=null; }
+function confirmDelete(modKey, id){
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal confirm-box">
+      <div class="modal-head"><h3>تأكيد الحذف</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+      <div class="modal-body"><div style="font-size:34px;margin-bottom:10px">🗑</div><p style="color:var(--text-dim)">هل تريد حذف السجل <b class="mono" style="color:var(--text)">${id}</b>؟ لا يمكن التراجع عن هذا الإجراء.</p></div>
+      <div class="modal-foot"><button class="btn btn-danger" onclick="doDelete('${modKey}','${id}')">حذف نهائي</button><button class="btn btn-ghost" onclick="closeModal()">تراجع</button></div>
+    </div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+}
+async function doDelete(modKey, id){
+  STATE[modKey] = STATE[modKey].filter(r=>r.id!==id);
+  await storeSet(modKey, STATE[modKey]);
+  closeModal(); showToast('تم الحذف'); render();
+}
+function exportCSV(){
+  let rows, headers, keys, filename;
+  if(currentView==='orders'){
+    rows = STATE.orders; filename='orders_export.csv';
+    headers=['اسم العملية','عدد الأبواب','الارتفاع','العرض','نوع الموتور','وزن الباب','الحالة','التاريخ'];
+    let csv='\uFEFF'+['id',...headers].join(',')+'\n';
+    rows.forEach(r=>{ csv += [r.id, r.client, r.doorCount, r.height, r.width, r.motorType, r.calc?.doorWeight, r.status, r.date].map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')+'\n'; });
+    downloadCSV(csv, filename); return;
+  }
+  if(currentView==='paints'){
+    rows = STATE.paints; filename='paints_export.csv';
+    let csv='\uFEFF'+['id','البيان','أمر مرتبط','الوزن','الحالة','التاريخ'].join(',')+'\n';
+    rows.forEach(r=>{ csv += [r.id,r.itemDesc,r.linkedOrder,r.totalWeightKg,r.status,r.date].map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')+'\n'; });
+    downloadCSV(csv, filename); return;
+  }
+  const m = MODULES[currentView]; if(!m) return;
+  rows = STATE[m.key]; if(!rows.length){ showToast('لا توجد بيانات للتصدير', true); return; }
+  headers = m.fields.map(f=>f.label); keys = m.fields.map(f=>f.key);
+  let csv = '\uFEFF' + ['id',...headers].join(',') + '\n';
+  rows.forEach(r=>{ csv += [r.id, ...keys.map(k=> '"'+String(r[k]||'').replace(/"/g,'""')+'"')].join(',') + '\n'; });
+  downloadCSV(csv, m.key+'_export.csv');
+}
+function downloadCSV(csv, filename){
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+  showToast('تم تصدير الملف');
+}
+function showToast(msg, isError){
+  const t = document.getElementById('toast'); t.textContent = msg;
+  t.style.borderRightColor = isError ? 'var(--bad)' : 'var(--good)';
+  t.classList.add('show'); clearTimeout(showToast._tm); showToast._tm = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ============================================================
+   AUTHENTICATION — حساب واحد مشترك لكل الفريق
+   ============================================================ */
+const AUTH_SESSION_KEY = LS_PREFIX+'session';
+const DEFAULT_CREDS = {username:'admin', password:'admin123'};
+async function sha256Hex(text){
+  try{
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){
+    // بديل بسيط في حال عدم توفر SubtleCrypto (سياقات غير آمنة قديمة)
+    let h=0; for(let i=0;i<text.length;i++){ h=((h<<5)-h+text.charCodeAt(i))|0; } return 'fb'+String(h);
+  }
+}
+async function ensureAuthRecord(){
+  let auth = await storeGet('auth', null);
+  if(!auth){
+    auth = {username: DEFAULT_CREDS.username, passwordHash: await sha256Hex(DEFAULT_CREDS.password)};
+    await storeSet('auth', auth);
+  }
+  return auth;
+}
+function isLoggedIn(){ return localStorage.getItem(AUTH_SESSION_KEY)==='1'; }
+async function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  const auth = await ensureAuthRecord();
+  const hash = await sha256Hex(p);
+  if(u===auth.username && hash===auth.passwordHash){
+    localStorage.setItem(AUTH_SESSION_KEY,'1');
+    errEl.textContent='';
+    showAppShell();
+  } else {
+    errEl.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+  }
+}
+function doLogout(){
+  localStorage.removeItem(AUTH_SESSION_KEY);
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginUser').value=''; document.getElementById('loginPass').value='';
+  const errEl=document.getElementById('loginErr'); if(errEl) errEl.textContent='';
+}
+function showAppShell(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+  render();
+}
+async function openChangePasswordModal(fromLoginScreen){
+  const auth = await ensureAuthRecord();
+  const modal = `<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal" style="width:380px">
+      <div class="modal-head"><h3>🔑 تغيير بيانات الدخول</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">
+        <div class="info-note">${fromLoginScreen?'أدخل بيانات الدخول الحالية لتعيين بيانات جديدة.':''}</div>
+        <div class="form-grid" style="margin-top:10px">
+          <div class="field full"><label>اسم المستخدم الحالي<span class="req"> *</span></label><input id="cp_curUser" value="${fromLoginScreen?'':auth.username}"></div>
+          <div class="field full"><label>كلمة المرور الحالية<span class="req"> *</span></label><input id="cp_curPass" type="password"></div>
+          <div class="field full"><label>اسم المستخدم الجديد<span class="req"> *</span></label><input id="cp_newUser" value="${auth.username}"></div>
+          <div class="field full"><label>كلمة المرور الجديدة<span class="req"> *</span></label><input id="cp_newPass" type="password"></div>
+        </div>
+        <div class="login-err" id="cpErr"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-accent" onclick="submitChangePassword()">حفظ</button><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button></div>
+    </div></div>`;
+  document.getElementById('modalRoot').innerHTML = modal;
+}
+async function submitChangePassword(){
+  const auth = await ensureAuthRecord();
+  const curUser = document.getElementById('cp_curUser').value.trim();
+  const curPass = document.getElementById('cp_curPass').value;
+  const newUser = document.getElementById('cp_newUser').value.trim();
+  const newPass = document.getElementById('cp_newPass').value;
+  const errEl = document.getElementById('cpErr');
+  if(!curUser || !curPass || !newUser || !newPass){ errEl.textContent='برجاء تعبئة كل الحقول'; return; }
+  const curHash = await sha256Hex(curPass);
+  if(curUser!==auth.username || curHash!==auth.passwordHash){ errEl.textContent='بيانات الدخول الحالية غير صحيحة'; return; }
+  const newAuth = {username:newUser, passwordHash: await sha256Hex(newPass)};
+  await storeSet('auth', newAuth);
+  closeModal(); showToast('تم تحديث بيانات الدخول بنجاح');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init(){
+  await ensureAuthRecord();
+  await loadAll();
+  if(isLoggedIn()){ showAppShell(); }
+  else { document.getElementById('loginScreen').style.display='flex'; }
+})();
+</script>
+</body>
+</html>
